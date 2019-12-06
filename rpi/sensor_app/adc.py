@@ -3,11 +3,13 @@ import sys
 import time
 import subprocess
 import shlex
+import threading
 
 import adafruit_ads1x15.ads1115 as ADS
 import board
 import busio
 import paho.mqtt.client as mqtt
+import paho.mqtt.subscribe as subscribe
 import pexpect
 from adafruit_ads1x15.analog_in import AnalogIn
 from tenacity import retry,wait_fixed,retry_if_exception_type
@@ -30,9 +32,16 @@ def on_disconnect(client, userdata, rc):
         print("Unexpected disconnection.")
 
 
+# def subscribe_thread():
+#     subscribe.callback(on_threshold_change, "carrito/threshold")
+
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
+    
+# def on_threshold_change(client, userdata, message):
+#     print("%s %s" % (message.topic, message.payload))
+#     THRESHOLD = 3
 
 def pub_error(msg):
     client.publish("carrito/errors", msg)
@@ -92,11 +101,20 @@ client.on_message = on_message
 client.on_disconnect = on_disconnect
 client.connect("localhost", 1883, 60)
 
+# # client.subscribe("carrito/threshold")
+# threading.Thread(target=subscribe_thread)
+# # subscribe.callback(on_threshold_change, "carrito/threshold")
+
 chan = initialize_sensor()
 
 print("{:>5}\t{:>5}".format('raw', 'v'))
 is_on = False
 turn_gear(1)
+
+
+msg = subscribe.simple("carrito/threshold")
+print(msg.payload)
+THRESHOLD = float(msg.payload)
 
 
 while True:
